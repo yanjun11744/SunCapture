@@ -55,47 +55,6 @@ public actor SunCameraService {
         driver.closeSession(device)
     }
 
-    // MARK: - 文件下载
-
-    /// 下载文件到临时目录，返回本地文件 URL
-    public func downloadToTemp(_ file: ICCameraFile, device: ICCameraDevice) async throws -> URL {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-        return try await download(file, device: device, to: dir)
-    }
-
-    /// 下载文件到指定目录，返回本地文件 URL
-    public func download(_ file: ICCameraFile,
-                         device: ICCameraDevice,
-                         to directory: URL) async throws -> URL {
-
-        // 创建目录
-        do {
-            try FileManager.default.createDirectory(
-                at: directory,
-                withIntermediateDirectories: true
-            )
-        } catch {
-            throw SunCaptureError.directoryCreationFailed(directory, error)
-        }
-
-        return try await withCheckedThrowingContinuation { cont in
-            let options: [ICDownloadOption: Any] = [
-                .downloadsDirectoryURL : directory,
-                .saveAsFilename        : file.name ?? UUID().uuidString,
-                .overwrite             : true
-            ]
-            let helper = SunDownloadHelper(file: file, dir: directory, cont: cont)
-            device.requestDownloadFile(
-                file,
-                options             : options,
-                downloadDelegate    : helper,
-                didDownloadSelector : #selector(SunDownloadHelper.done(_:error:contextInfo:)),
-                contextInfo         : nil
-            )
-        }
-    }
-
     // MARK: - 文件删除
 
     /// 删除一组文件
