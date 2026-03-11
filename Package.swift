@@ -5,22 +5,24 @@ import PackageDescription
 
 let package = Package(
     name: "SunCapture",
+    platforms: [
+        .macOS(.v14)
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "SunCapture",
             targets: ["SunCapture"]
         ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "SunCapture"
+            name: "SunCapture",
+            path: "Sources/SunCapture"
         ),
         .testTarget(
             name: "SunCaptureTests",
-            dependencies: ["SunCapture"]
+            dependencies: ["SunCapture"],
+            path: "Tests/SunCaptureTests"
         ),
     ]
 )

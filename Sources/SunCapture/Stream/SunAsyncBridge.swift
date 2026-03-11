@@ -28,7 +28,7 @@ public final class SunAsyncBridge<Event: Sendable>: Sendable {
 
     // nonisolated(unsafe)：deinit / delegate（非 MainActor 上下文）会调用 yield/finish，
     // AsyncStream.Continuation 内部已做线程安全，unsafe 标注是安全的。
-    nonisolated(unsafe) private let continuation: AsyncStream<Event>.Continuation
+    private let continuation: AsyncStream<Event>.Continuation
 
     // MARK: - Init / Deinit
 
@@ -65,7 +65,7 @@ public final class SunThrowingBridge<Event: Sendable>: Sendable {
 
     public let stream: AsyncThrowingStream<Event, Error>
 
-    nonisolated(unsafe) private let continuation: AsyncThrowingStream<Event, Error>.Continuation
+    private let continuation: AsyncThrowingStream<Event, Error>.Continuation
 
     public init() {
         var captured: AsyncThrowingStream<Event, Error>.Continuation!
