@@ -45,6 +45,10 @@ public extension ICCameraFile {
     var isAudio: Bool {
         ["wav", "mp3", "aac", "m4a"].contains(fileExtension)
     }
+    
+    var isPreviewable: Bool {
+        isPhoto || isVideo
+    }
 
     // MARK: - 品牌判断
 
@@ -87,6 +91,27 @@ public extension ICCameraFile {
         default:                return nil
         }
     }
+    
+    static let brandMap: [String: String] = [
+        "cr2": "Canon",  "cr3": "Canon",   "crw": "Canon",
+        "nef": "Nikon",  "nrw": "Nikon",
+        "arw": "Sony",   "srf": "Sony",    "sr2": "Sony",
+        "raf": "Fujifilm",
+        "orf": "Olympus / OM System", "ori": "Olympus / OM System",
+        "rw2": "Panasonic / Leica",   "raw": "Panasonic / Leica",
+        "pef": "Pentax / Ricoh",      "ptx": "Pentax / Ricoh",
+        "srw": "Samsung",
+        "x3f": "Sigma",
+        "3fr": "Hasselblad", "fff": "Hasselblad",
+        "iiq": "Phase One",  "cap": "Phase One",
+        "rwl": "Leica",
+        "dng": "DNG (Adobe)",
+        "dcr": "Kodak",  "kdc": "Kodak",
+        "mrw": "Minolta",
+        "erf": "Epson",
+        "mef": "Mamiya",
+        "gpr": "GoPro",
+    ]
 
     // MARK: - 格式化信息
 
@@ -98,11 +123,15 @@ public extension ICCameraFile {
     /// 格式化修改日期
     var formattedDate: String {
         guard let date = modificationDate else { return "未知日期" }
+        return Self.dateFormatter.string(from: date)
+    }
+    
+    private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .short
-        return f.string(from: date)
-    }
+        return f
+    }()
 
     /// 扩展名（小写，不含点），如 "jpg"
     var fileExtension: String {
