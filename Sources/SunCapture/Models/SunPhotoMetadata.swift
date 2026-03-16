@@ -101,3 +101,23 @@ public struct SunPhotoMetadata: Sendable {
         dateTime       = tiff?["DateTime"] as? String
     }
 }
+
+extension SunPhotoMetadata: CustomStringConvertible {
+
+    public var description: String {
+        var parts: [String] = []
+
+        if let f = formattedFNumber { parts.append(f) }
+        if let e = formattedExposureTime { parts.append(e) }
+        if let iso = formattedISO { parts.append(iso) }
+        if let f = formattedFocalLength { parts.append(f) }
+        if let eq = formattedFocalLengthIn35mm { parts.append("35mm: \(eq)") }
+        if let ev = formattedExposureBias { parts.append(ev) }
+        if let lens = lensModel { parts.append(lens) }
+        if let make = make { parts.append(make) }
+        if let model = model { parts.append(model) }
+        if let date = dateTime { parts.append(date) }
+
+        return parts.joined(separator: " | ")
+    }
+}
