@@ -69,9 +69,25 @@ public actor SunCameraService {
         driver.requestThumbnail(for: file)
     }
 
+    /// 手动请求一组文件的缩略图
+    public func requestThumbnails(for files: [ICCameraFile]) {
+        files.forEach { driver.requestThumbnail(for: $0) }
+    }
+
     /// 手动请求元数据
     public func requestMetadata(for file: ICCameraFile) {
         driver.requestMetadata(for: file)
+    }
+
+    /// 重新开始扫描设备
+    public func restartBrowsing() {
+        driver.stopBrowsing()
+        driver.startBrowsing()
+    }
+
+    /// 检查设备是否连接
+    public func isConnected(_ device: ICCameraDevice) -> Bool {
+        device.hasOpenSession
     }
 }
 
