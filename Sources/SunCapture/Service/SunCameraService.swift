@@ -79,12 +79,6 @@ public actor SunCameraService {
         driver.requestMetadata(for: file)
     }
 
-    /// 重新开始扫描设备
-    public func restartBrowsing() {
-        driver.stopBrowsing()
-        driver.startBrowsing()
-    }
-
     /// 检查设备是否连接
     public func isConnected(_ device: ICCameraDevice) -> Bool {
         device.hasOpenSession
