@@ -34,11 +34,12 @@ public enum SunDeviceEvent: @unchecked Sendable {
     /// 缩略图就绪
     case thumbnailReady(file: ICCameraFile, image: CGImage)
     /// 元数据就绪
-    case metadataReady(file: ICCameraFile, metadata: [AnyHashable: Any])
+    case metadataReady(file: ICCameraFile, metadata: SunPhotoMetadata)
 
     // MARK: - 访问限制
     /// 相机启用访问限制
     case accessRestricted(ICDevice)
+    
     /// 访问限制已解除
     case accessUnrestricted(ICDevice)
 

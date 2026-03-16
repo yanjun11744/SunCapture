@@ -196,7 +196,7 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
                              error: (any Error)?) {
         guard let file = item as? ICCameraFile,
               let meta = metadata else { return }
-        emit(.metadataReady(file: file, metadata: meta))
+        emit(.metadataReady(file: file, metadata: SunPhotoMetadata(from: meta)))
     }
 
     // 访问限制
