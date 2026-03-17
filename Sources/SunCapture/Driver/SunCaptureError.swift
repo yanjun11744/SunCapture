@@ -6,24 +6,24 @@ import Foundation
 
 /// SunCapture 统一错误类型
 public enum SunCaptureError: LocalizedError, Sendable {
-
+    
     /// 没有已连接的相机设备
     case noDevice
-
+    
     /// 会话打开 / 关闭失败
     case sessionFailed(any Error)
-
+    
     /// 文件下载失败
     case downloadFailed(ICCameraFile, any Error)
-
+    
     /// 缩略图获取失败
     case thumbnailFailed(ICCameraFile, any Error)
-
+    
     /// 下载目录创建失败
     case directoryCreationFailed(URL, any Error)
-
+    
     // MARK: - LocalizedError
-
+    
     public var errorDescription: String? {
         switch self {
         case .noDevice:
