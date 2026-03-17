@@ -17,7 +17,7 @@ public enum SunSortOrder: Sendable {
     case sizeDescending
 }
 
-extension SunSortOrder {
+public extension SunSortOrder {
 
     /// 短标签，适合按钮/标题，如 "日期 最新"
     var shortLabel: String {
