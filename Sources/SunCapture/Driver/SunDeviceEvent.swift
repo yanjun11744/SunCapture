@@ -33,6 +33,7 @@ public enum SunDeviceEvent: @unchecked Sendable {
     // MARK: - 媒体数据
     /// 缩略图就绪
     case thumbnailReady(file: ICCameraFile, image: CGImage)
+    
     /// 元数据就绪
     case metadataReady(file: ICCameraFile, metadata: SunPhotoMetadata)
 
