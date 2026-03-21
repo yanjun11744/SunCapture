@@ -120,6 +120,7 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
 
     // 文件目录加载完毕
     public func deviceDidBecomeReady(withCompleteContentCatalog device: ICCameraDevice) {
+        print("✅ deviceReady @ \(Date()), contents count: \(device.contents?.count ?? -1)")
         emit(.deviceReady(device))
     }
 
@@ -145,7 +146,7 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
     public func cameraDevice(_ camera: ICCameraDevice, didAdd items: [ICCameraItem]) {
         for item in items {
             guard let file = item as? ICCameraFile else { continue }
-            print("📥 fileAdded: \(file.name ?? "nil")")
+            print("📥 fileAdded: \(file.name ?? "nil") @ \(Date())")
             emit(.fileAdded(file))
             file.requestThumbnail()
         }
