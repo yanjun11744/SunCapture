@@ -225,15 +225,15 @@ public actor SunCameraService {
         try await ensureCatalogReady(device: device, policy: policy)
         guard !files.isEmpty else { return }
 
-        // 用文件名匹配，而不是对象地址
         final class PendingNamesBox: @unchecked Sendable {
             var names: Set<String>
             init(_ names: Set<String>) { self.names = names }
         }
         let pendingBox = PendingNamesBox(Set(files.compactMap(\.name)))
         let devKey = Self.deviceKey(device)
-        let eventStream = driver.events
 
+        // ✅ 先订阅事件流，再发删除命令，消除竞争窗口
+        let eventStream = driver.events
         driver.deleteFiles(files, from: device)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
