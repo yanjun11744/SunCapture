@@ -459,6 +459,7 @@ public actor SunCameraService {
                         continue
                     }
                 }
+                return  // 流意外结束视为已关闭（设备断开也算关闭成功）
             }
             group.addTask {
                 while !Task.isCancelled {
