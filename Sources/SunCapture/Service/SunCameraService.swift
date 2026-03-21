@@ -225,7 +225,7 @@ public actor SunCameraService {
         try await ensureCatalogReady(device: device, policy: policy)
         guard !files.isEmpty else { return }
 
-        // ✅ 用文件名匹配，而不是对象地址
+        // 用文件名匹配，而不是对象地址
         final class PendingNamesBox: @unchecked Sendable {
             var names: Set<String>
             init(_ names: Set<String>) { self.names = names }
@@ -243,6 +243,7 @@ public actor SunCameraService {
                     case .fileRemoved(let f):
                         if let name = f.name {
                             pendingBox.names.remove(name)
+                            print("✅ fileRemoved: \(name), 剩余: \(pendingBox.names)")
                         }
                         if pendingBox.names.isEmpty { return }
                     case .deviceRemoved(let cam) where Self.deviceKey(cam) == devKey:
