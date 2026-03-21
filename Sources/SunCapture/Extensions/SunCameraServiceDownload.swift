@@ -24,6 +24,8 @@ extension SunCameraService {
                          device: ICCameraDevice,
                          to directory: URL) async throws -> URL {
 
+        try await ensureCatalogReady(device: device)
+
         do {
             try FileManager.default.createDirectory(
                 at: directory,

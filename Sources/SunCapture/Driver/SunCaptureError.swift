@@ -9,6 +9,18 @@ public enum SunCaptureError: LocalizedError, Sendable {
     
     /// 没有已连接的相机设备
     case noDevice
+
+    /// 操作超时（带可观测的语义标签，便于日志与崩溃聚合）
+    case operationTimedOut(operation: String)
+
+    /// 设备已断开（delegate 延迟或未触发时，业务层仍应能失败得明确）
+    case deviceDisconnected(uuid: String)
+
+    /// 会话已开但目录/能力尚未达到可安全操作业务的确认点
+    case sessionNotReady(uuid: String)
+
+    /// 任务被取消（通常是 close / 拔线触发的合并取消）
+    case cancelled
     
     /// 会话打开 / 关闭失败
     case sessionFailed(any Error)
@@ -28,6 +40,14 @@ public enum SunCaptureError: LocalizedError, Sendable {
         switch self {
         case .noDevice:
             return "没有已连接的相机设备"
+        case .operationTimedOut(let op):
+            return "操作超时：\(op)"
+        case .deviceDisconnected(let uuid):
+            return "设备已断开：\(uuid)"
+        case .sessionNotReady(let uuid):
+            return "会话尚未就绪（目录未确认）：\(uuid)"
+        case .cancelled:
+            return "操作已取消"
         case .sessionFailed(let e):
             return "会话失败：\(e.localizedDescription)"
         case .downloadFailed(let f, let e):

@@ -168,4 +168,16 @@ struct SunCaptureErrorTests {
         let error = SunCaptureError.sessionFailed(Inner())
         #expect(error.errorDescription?.contains("连接超时") == true)
     }
+
+    @Test("operationTimedOut 描述包含操作名")
+    func operationTimedOutDescription() {
+        let error = SunCaptureError.operationTimedOut(operation: "openSession")
+        #expect(error.errorDescription?.contains("openSession") == true)
+    }
+
+    @Test("deviceDisconnected 描述包含 uuid")
+    func deviceDisconnectedDescription() {
+        let error = SunCaptureError.deviceDisconnected(uuid: "test-uuid")
+        #expect(error.errorDescription?.contains("test-uuid") == true)
+    }
 }

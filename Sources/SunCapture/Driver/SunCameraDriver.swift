@@ -9,32 +9,23 @@ import AppKit
 ///
 /// 职责：
 /// - 封装 ICDeviceBrowser / ICCameraDevice delegate
-/// - 通过 SunAsyncBridge 把所有事件转成 AsyncStream
-/// - 不持有任何 UI 状态
+/// - 通过 ``SunEventMulticast`` 把事件广播给任意多个 `AsyncStream`（避免「抢事件」）
+/// - 不持有业务状态；会话确认点由 ``SunCameraService`` 实现
 ///
-/// 使用示例：
-/// ```swift
-/// let driver = SunCameraDriver()
-/// driver.startBrowsing()
-///
-/// for await event in driver.events {
-///     switch event {
-///     case .deviceAdded(let cam): ...
-///     case .fileAdded(let file): ...
-///     default: break
-///     }
-/// }
-/// ```
+/// ## 线程说明
+/// ImageCaptureCore 的 delegate 回调**不保证**在主线程；本类型只在回调里做 O(1) 广播，重逻辑应放在 actor 业务层。
 public final class SunCameraDriver: NSObject, @unchecked Sendable {
 
     // MARK: - 公共事件流
 
-    /// 所有设备 / 文件事件，直接 for await 消费
-    public var events: AsyncStream<SunDeviceEvent> { bridge.stream }
+    /// 设备 / 文件事件。每次访问都会得到**新的**订阅（多消费者安全）。
+    public var events: AsyncStream<SunDeviceEvent> {
+        eventMulticast.subscribe()
+    }
 
     // MARK: - 私有
 
-    private let bridge = SunAsyncBridge<SunDeviceEvent>()
+    private let eventMulticast = SunEventMulticast<SunDeviceEvent>()
 
     nonisolated(unsafe) private var browser: ICDeviceBrowser?
 
@@ -67,16 +58,16 @@ public final class SunCameraDriver: NSObject, @unchecked Sendable {
         browser = nil
     }
 
-    // MARK: - 设备会话
+    // MARK: - 设备会话（仅下发请求；确认点在 Service）
 
-    /// 打开指定相机的会话，开始枚举文件
-    public func openSession(_ device: ICCameraDevice) {
+    /// 绑定 delegate 并请求打开会话（不等待完成）
+    public func bindAndRequestOpenSession(_ device: ICCameraDevice) {
         device.delegate = self
         device.requestOpenSession()
     }
 
-    /// 关闭指定相机的会话
-    public func closeSession(_ device: ICCameraDevice) {
+    /// 请求关闭会话（不等待完成）
+    public func requestCloseSession(_ device: ICCameraDevice) {
         device.requestCloseSession()
     }
 
@@ -100,7 +91,7 @@ public final class SunCameraDriver: NSObject, @unchecked Sendable {
     // MARK: - 内部事件推送
 
     fileprivate func emit(_ event: SunDeviceEvent) {
-        bridge.yield(event)
+        eventMulticast.broadcast(event)
     }
 }
 
@@ -214,7 +205,6 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
         emit(.deviceRemoved(cam))
     }
 
-    // 其他协议要求（空实现，预留扩展）
     public func cameraDeviceDidChangeCapability(_ camera: ICCameraDevice) {}
     public func cameraDevice(_ camera: ICCameraDevice, didReceivePTPEvent eventData: Data) {}
 }

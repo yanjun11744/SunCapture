@@ -29,7 +29,7 @@
 ///     for await event in await service.events {
 ///         switch event {
 ///         case .deviceAdded(let cam):
-///             await service.open(cam)
+///             try await service.openSession(on: cam)
 ///         case .fileAdded(let file):
 ///             print("新文件:", file.name ?? "")
 ///         case .thumbnailReady(let file, let image):
