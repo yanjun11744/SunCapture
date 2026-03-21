@@ -226,9 +226,10 @@ public actor SunCameraService {
         from device: ICCameraDevice,
         policy: SunCameraSessionPolicy = .default
     ) async throws {
+        print("📋 deleteFiles 开始, readyCatalog包含设备: \(readyCatalogDevices.contains(Self.deviceKey(device)))")
         try await ensureCatalogReady(device: device, policy: policy)
         guard !files.isEmpty else { return }
-
+        print("📤 发出删除命令, 等待 \(files.count) 个 fileRemoved 确认")
         let pendingBox = ObjectIdentifierSetBox(Set(files.map(ObjectIdentifier.init)))
         let devKey = Self.deviceKey(device)
 
