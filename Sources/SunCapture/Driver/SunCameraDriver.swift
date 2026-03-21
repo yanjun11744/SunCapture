@@ -145,6 +145,7 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
     public func cameraDevice(_ camera: ICCameraDevice, didAdd items: [ICCameraItem]) {
         for item in items {
             guard let file = item as? ICCameraFile else { continue }
+            print("📥 fileAdded: \(file.name ?? "nil")")
             emit(.fileAdded(file))
             file.requestThumbnail()
         }
