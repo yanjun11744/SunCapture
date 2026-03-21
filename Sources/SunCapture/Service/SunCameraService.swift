@@ -13,11 +13,6 @@ private final class ICCameraHandle: @unchecked Sendable {
     init(_ device: ICCameraDevice) { self.device = device }
 }
 
-private final class ObjectIdentifierSetBox: @unchecked Sendable {
-    var pending: Set<ObjectIdentifier>
-    init(_ pending: Set<ObjectIdentifier>) { self.pending = pending }
-}
-
 // MARK: - 策略 / 状态（对外可观测，避免调用方猜）
 
 /// 打开 / 关闭 / 轮询等超时与重试策略（可按机型调参）。
@@ -221,30 +216,35 @@ public actor SunCameraService {
     // MARK: - 文件删除（等待 delegate 确认或超时）
 
     /// 删除文件并等待 `fileRemoved` 事件确认（USB/PTP 慢时由超时暴露失败，而不是静默成功）。
+   // SunCameraService.deleteFiles
     public func deleteFiles(
         _ files: [ICCameraFile],
         from device: ICCameraDevice,
         policy: SunCameraSessionPolicy = .default
     ) async throws {
-        print("📋 deleteFiles 开始, readyCatalog包含设备: \(readyCatalogDevices.contains(Self.deviceKey(device)))")
         try await ensureCatalogReady(device: device, policy: policy)
         guard !files.isEmpty else { return }
-        print("📤 发出删除命令, 等待 \(files.count) 个 fileRemoved 确认")
-        let pendingBox = ObjectIdentifierSetBox(Set(files.map(ObjectIdentifier.init)))
-        let devKey = Self.deviceKey(device)
 
-        // ✅ 在发命令之前订阅，保证不会漏事件
+        // ✅ 用文件名匹配，而不是对象地址
+        final class PendingNamesBox: @unchecked Sendable {
+            var names: Set<String>
+            init(_ names: Set<String>) { self.names = names }
+        }
+        let pendingBox = PendingNamesBox(Set(files.compactMap(\.name)))
+        let devKey = Self.deviceKey(device)
         let eventStream = driver.events
 
         driver.deleteFiles(files, from: device)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                for await event in eventStream {   // ← 用提前拿到的流
+                for await event in eventStream {
                     switch event {
                     case .fileRemoved(let f):
-                        pendingBox.pending.remove(ObjectIdentifier(f))
-                        if pendingBox.pending.isEmpty { return }
+                        if let name = f.name {
+                            pendingBox.names.remove(name)
+                        }
+                        if pendingBox.names.isEmpty { return }
                     case .deviceRemoved(let cam) where Self.deviceKey(cam) == devKey:
                         throw SunCaptureError.deviceDisconnected(uuid: devKey)
                     case .error(let err):
