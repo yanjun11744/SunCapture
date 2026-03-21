@@ -310,6 +310,10 @@ public actor SunCameraService {
             break
         }
     }
+    
+    public func connectedDevices() -> [ICCameraDevice] {
+        driver.connectedDevices()
+    }
 
     // MARK: - 内部：open 实现
 

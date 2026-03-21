@@ -210,3 +210,9 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
     public func cameraDeviceDidChangeCapability(_ camera: ICCameraDevice) {}
     public func cameraDevice(_ camera: ICCameraDevice, didReceivePTPEvent eventData: Data) {}
 }
+
+extension SunCameraDriver {
+    public func connectedDevices() -> [ICCameraDevice] {
+        (browser?.devices ?? []).compactMap { $0 as? ICCameraDevice }
+    }
+}
