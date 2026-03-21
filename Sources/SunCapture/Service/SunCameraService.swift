@@ -231,12 +231,15 @@ public actor SunCameraService {
 
         let pendingBox = ObjectIdentifierSetBox(Set(files.map(ObjectIdentifier.init)))
         let devKey = Self.deviceKey(device)
+
+        // ✅ 在发命令之前订阅，保证不会漏事件
+        let eventStream = driver.events
+
         driver.deleteFiles(files, from: device)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                let stream = self.driver.events
-                for await event in stream {
+                for await event in eventStream {   // ← 用提前拿到的流
                     switch event {
                     case .fileRemoved(let f):
                         pendingBox.pending.remove(ObjectIdentifier(f))
@@ -285,7 +288,7 @@ public actor SunCameraService {
         let stream = driver.events
         Task {
             for await event in stream {
-                await self.handleLifecycleEvent(event)
+                self.handleLifecycleEvent(event)
             }
         }
     }
@@ -350,11 +353,11 @@ public actor SunCameraService {
     ) async throws {
         let key = Self.deviceKey(device)
         let handle = ICCameraHandle(device)
+        let eventStream = driver.events          // ← 提前订阅
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                let stream = self.driver.events
-                for await event in stream {
+                for await event in eventStream { // ← 用 eventStream
                     try Task.checkCancellation()
                     switch event {
                     case .sessionOpened(let cam) where Self.deviceKey(cam) == key:
@@ -369,25 +372,23 @@ public actor SunCameraService {
                 }
                 throw SunCaptureError.deviceDisconnected(uuid: key)
             }
-
+            // 轮询和超时 task 不变
             group.addTask {
                 while !Task.isCancelled {
-                    let open = handle.device.hasOpenSession
-                    if open { return }
+                    if handle.device.hasOpenSession { return }
                     try await Task.sleep(for: poll)
                 }
                 throw SunCaptureError.cancelled
             }
-
             group.addTask {
                 try await Task.sleep(for: deadline)
                 throw SunCaptureError.operationTimedOut(operation: "openSession")
             }
-
             try await group.next()!
             group.cancelAll()
         }
     }
+
 
     /// 「目录就绪」确认点：`deviceReady` 或 `contents != nil`（空卡也可能是空数组，但非 nil 即视为可枚举完成）
     private func confirmCatalogReady(
@@ -397,11 +398,11 @@ public actor SunCameraService {
     ) async throws {
         let key = Self.deviceKey(device)
         let handle = ICCameraHandle(device)
+        let eventStream = driver.events          // ← 提前订阅
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                let stream = self.driver.events
-                for await event in stream {
+                for await event in eventStream {
                     try Task.checkCancellation()
                     switch event {
                     case .deviceReady(let cam) where Self.deviceKey(cam) == key:
@@ -416,21 +417,17 @@ public actor SunCameraService {
                 }
                 throw SunCaptureError.deviceDisconnected(uuid: key)
             }
-
             group.addTask {
                 while !Task.isCancelled {
-                    let ready = handle.device.hasOpenSession && handle.device.contents != nil
-                    if ready { return }
+                    if handle.device.hasOpenSession && handle.device.contents != nil { return }
                     try await Task.sleep(for: poll)
                 }
                 throw SunCaptureError.cancelled
             }
-
             group.addTask {
                 try await Task.sleep(for: deadline)
                 throw SunCaptureError.operationTimedOut(operation: "catalogReady")
             }
-
             try await group.next()!
             group.cancelAll()
         }
@@ -443,11 +440,11 @@ public actor SunCameraService {
     ) async throws {
         let key = Self.deviceKey(device)
         let handle = ICCameraHandle(device)
+        let eventStream = driver.events          // ← 提前订阅
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                let stream = self.driver.events
-                for await event in stream {
+                for await event in eventStream {
                     try Task.checkCancellation()
                     switch event {
                     case .sessionClosed(let cam) where Self.deviceKey(cam) == key:
@@ -461,21 +458,17 @@ public actor SunCameraService {
                     }
                 }
             }
-
             group.addTask {
                 while !Task.isCancelled {
-                    let open = handle.device.hasOpenSession
-                    if !open { return }
+                    if !handle.device.hasOpenSession { return }
                     try await Task.sleep(for: poll)
                 }
                 throw SunCaptureError.cancelled
             }
-
             group.addTask {
                 try await Task.sleep(for: deadline)
                 throw SunCaptureError.operationTimedOut(operation: "closeSession")
             }
-
             try await group.next()!
             group.cancelAll()
         }
