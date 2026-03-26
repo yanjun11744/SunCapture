@@ -243,7 +243,6 @@ public actor SunCameraService {
                     case .fileRemoved(let f):
                         if let name = f.name {
                             pendingBox.names.remove(name)
-                            print("✅ fileRemoved: \(name), 剩余: \(pendingBox.names)")
                         }
                         if pendingBox.names.isEmpty { return }
                     case .deviceRemoved(let cam) where Self.deviceKey(cam) == devKey:
