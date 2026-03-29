@@ -120,7 +120,8 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
 
     // 文件目录加载完毕
     public func deviceDidBecomeReady(withCompleteContentCatalog device: ICCameraDevice) {
-        emit(.deviceReady(device))
+       print("🔔 deviceDidBecomeReady 触发: \(Date()), contents: \(device.contents?.count ?? -1)")
+       emit(.deviceReady(device))
     }
 
     // 会话打开
