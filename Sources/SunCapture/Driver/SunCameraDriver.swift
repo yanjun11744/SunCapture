@@ -129,6 +129,7 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
             emit(.error(.sessionFailed(error)))
         } else if let cam = device as? ICCameraDevice {
             emit(.sessionOpened(cam))
+            print("会话打开")
         }
     }
 
@@ -146,6 +147,8 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
         for item in items {
             guard let file = item as? ICCameraFile else { continue }
             emit(.fileAdded(file))
+            print("新增文件")
+            
             // file.requestThumbnail()
         }
     }
