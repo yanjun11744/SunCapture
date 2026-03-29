@@ -148,7 +148,6 @@ extension SunCameraDriver: ICCameraDeviceDelegate {
         for item in items {
             guard let file = item as? ICCameraFile else { continue }
             emit(.fileAdded(file))
-            print("新增文件")
             
             // file.requestThumbnail()
         }
