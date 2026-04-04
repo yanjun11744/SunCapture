@@ -42,6 +42,24 @@ public struct SunPhotoMetadata: Sendable {
     /// 拍摄时间（已解析为 Date）
     public let dateTime: Date?
 
+    // MARK: - 图像信息
+    public let pixelWidth: Int?
+    public let pixelHeight: Int?
+
+    // MARK: - 时间（更精准）
+    public let dateTimeOriginal: Date?
+
+    // MARK: - 镜头增强
+    public let lensMake: String?
+    public let lensSpecification: [Any]?
+
+    // MARK: - 曝光控制
+    public let meteringMode: Int?
+    public let exposureProgram: Int?
+
+    // MARK: - 其他
+    public let software: String?
+
     // MARK: - 初始化
 
     /// 从 ImageCapture / EXIF 原始字典解析
@@ -62,6 +80,14 @@ public struct SunPhotoMetadata: Sendable {
         model              = tiff?[Key.model] as? String
 
         dateTime           = Self.parseDate(tiff?[Key.dateTime] as? String)
+        dateTimeOriginal   = Self.parseDate(exif?[Key.dateTimeOriginal] as? String)
+        pixelWidth         = tiff?[Key.pixelWidth] as? Int
+        pixelHeight        = tiff?[Key.pixelHeight] as? Int
+        lensMake           = exif?[Key.lensMake] as? String
+        lensSpecification  = exif?[Key.lensSpecification] as? [Any]
+        meteringMode       = exif?[Key.meteringMode] as? Int
+        exposureProgram    = exif?[Key.exposureProgram] as? Int
+        software           = tiff?[Key.software] as? String
     }
 }
 
@@ -78,10 +104,20 @@ private enum Key {
     static let focalLength35 = "FocalLenIn35mmFilm"
     static let exposureBias = "ExposureBiasValue"
     static let lensModel = "LensModel"
+    static let lensMake = "LensMake"
+    static let lensSpecification = "LensSpecification"
 
     static let make = "Make"
     static let model = "Model"
+    static let software = "Software"
     static let dateTime = "DateTime"
+    static let dateTimeOriginal = "DateTimeOriginal"
+
+    static let pixelWidth = "PixelWidth"
+    static let pixelHeight = "PixelHeight"
+
+    static let meteringMode = "MeteringMode"
+    static let exposureProgram = "ExposureProgram"
 }
 
 // MARK: - 格式化输出
