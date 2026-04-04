@@ -51,7 +51,7 @@ public struct SunPhotoMetadata: Sendable {
 
     // MARK: - 镜头增强
     public let lensMake: String?
-    public let lensSpecification: [Any]?
+    public let lensSpecification: [String]?
 
     // MARK: - 曝光控制
     public let meteringMode: Int?
@@ -84,7 +84,7 @@ public struct SunPhotoMetadata: Sendable {
         pixelWidth         = tiff?[Key.pixelWidth] as? Int
         pixelHeight        = tiff?[Key.pixelHeight] as? Int
         lensMake           = exif?[Key.lensMake] as? String
-        lensSpecification  = exif?[Key.lensSpecification] as? [Any]
+        lensSpecification = (exif?[Key.lensSpecification] as? [Any])?.map { "\($0)" }
         meteringMode       = exif?[Key.meteringMode] as? Int
         exposureProgram    = exif?[Key.exposureProgram] as? Int
         software           = tiff?[Key.software] as? String
@@ -179,6 +179,7 @@ public extension SunPhotoMetadata {
             time: .standard
         )
     }
+    
 }
 
 // MARK: - 描述输出
