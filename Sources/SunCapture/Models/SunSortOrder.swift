@@ -8,7 +8,7 @@
 import Foundation
 
 /// 文件排序方式
-public enum SunSortOrder: Sendable {
+public enum SunSortOrder: String, Sendable, CaseIterable {
     case nameAscending
     case nameDescending
     case dateAscending
