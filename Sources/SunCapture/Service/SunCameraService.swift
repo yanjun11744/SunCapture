@@ -121,10 +121,7 @@ public actor SunCameraService {
 
     // MARK: - Init
 
-    public init(autoBrowse: Bool = true) {
-        if autoBrowse {
-            driver.startBrowsing()
-        }
+    public init() {
         Task {
             await self.startLifecyclePumpIfNeeded()
         }
