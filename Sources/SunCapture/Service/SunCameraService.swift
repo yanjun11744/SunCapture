@@ -121,11 +121,19 @@ public actor SunCameraService {
 
     // MARK: - Init
 
-    public init() {
-        driver.startBrowsing()
+    public init(autoBrowse: Bool = true) {
+        if autoBrowse {
+            driver.startBrowsing()
+        }
         Task {
             await self.startLifecyclePumpIfNeeded()
         }
+    }
+    
+    /// 重新启动设备扫描（用于本地网络权限激活后补扫）
+    public func restartBrowsing() {
+        driver.stopBrowsing()
+        driver.startBrowsing()
     }
 
     // MARK: - 浏览
