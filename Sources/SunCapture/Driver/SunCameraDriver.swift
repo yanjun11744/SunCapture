@@ -49,6 +49,7 @@ public final class SunCameraDriver: NSObject, @unchecked Sendable {
         b.browsedDeviceTypeMask = .camera
         b.start()
         browser = b
+        print("📷 ICDeviceBrowser started, browsedDeviceTypeMask:", b.browsedDeviceTypeMask.rawValue)
     }
 
     /// 停止扫描

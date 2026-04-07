@@ -36,16 +36,20 @@ public actor SunLocalNetworkTrigger {
             nonisolated(unsafe) var resumed = false
 
             b.stateUpdateHandler = { state in
+                print("🌐 NWBrowser state:", state)
                 switch state {
                 case .ready:
                     guard !resumed else { return }
                     resumed = true
                     Task {
+                        print("🌐 NWBrowser ready，300ms 后重启 ICDeviceBrowser")
                         try? await Task.sleep(for: .milliseconds(300))
                         await service.restartBrowsing()
+                        print("🌐 restartBrowsing 已调用")
                         cont.resume()
                     }
-                case .failed:
+                case .failed(let error):
+                    print("🌐 NWBrowser failed:", error)
                     guard !resumed else { return }
                     resumed = true
                     cont.resume()
