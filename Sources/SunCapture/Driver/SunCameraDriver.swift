@@ -102,6 +102,7 @@ extension SunCameraDriver: ICDeviceBrowserDelegate {
     public func deviceBrowser(_ browser: ICDeviceBrowser,
                               didAdd device: ICDevice,
                               moreComing: Bool) {
+        print("didAdd device:", device.name ?? "nil", type(of: device))                        
         guard let cam = device as? ICCameraDevice else { return }
         emit(.deviceAdded(cam))
     }
