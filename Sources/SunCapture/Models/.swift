@@ -19,28 +19,35 @@ public enum SunSortOrder: String, Sendable, CaseIterable {
 
 public extension SunSortOrder {
 
-    /// 短标签，适合按钮/标题，如 "日期 最新"
-    var shortLabel: String {
+    var fieldKey: LocalizedStringResource {
+    switch self {
+    case .nameAscending, .nameDescending:
+        "sort.field.name"
+    case .dateAscending, .dateDescending:
+        "sort.field.date"
+    case .sizeAscending, .sizeDescending:
+        "sort.field.size"
+    }
+}
+
+    var directionShortKey: LocalizedStringResource {
         switch self {
-        case .nameAscending:  return "名称 A→Z"
-        case .nameDescending: return "名称 Z→A"
-        case .dateDescending: return "日期 最新"
-        case .dateAscending:  return "日期 最旧"
-        case .sizeDescending: return "大小 最大"
-        case .sizeAscending:  return "大小 最小"
+        case .nameAscending:  "sort.short.az"
+        case .nameDescending: "sort.short.za"
+        case .dateDescending: "sort.short.newest"
+        case .dateAscending:  "sort.short.oldest"
+        case .sizeDescending: "sort.short.largest"
+        case .sizeAscending:  "sort.short.smallest"
         }
     }
 
     /// 完整标签，适合菜单，如 "日期：最新优先"
     var label: String {
-        switch self {
-        case .nameAscending:  return "名称：A → Z"
-        case .nameDescending: return "名称：Z → A"
-        case .dateDescending: return "日期：最新优先"
-        case .dateAscending:  return "日期：最旧优先"
-        case .sizeDescending: return "大小：从大到小"
-        case .sizeAscending:  return "大小：从小到大"
-        }
+        String(
+            localized: "sort.label %@ %@",
+            String(localized: fieldKey),
+            String(localized: directionShortKey)
+        )
     }
 
     /// 对应的 SF Symbol
