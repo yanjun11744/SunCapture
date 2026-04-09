@@ -63,29 +63,5 @@ extension SunCameraService {
         let start = Calendar.current.startOfDay(for: Date())
         return files(from: device, between: start, and: Date())
     }
-
-    // MARK: - 排序
-
-    /// 对文件列表排序
-    public func sorted(_ files: [ICCameraFile], by order: SunSortOrder) -> [ICCameraFile] {
-        switch order {
-        case .nameAscending:
-            return files.sorted { ($0.name ?? "") < ($1.name ?? "") }
-        case .nameDescending:
-            return files.sorted { ($0.name ?? "") > ($1.name ?? "") }
-        case .dateAscending:
-            return files.sorted {
-                ($0.modificationDate ?? .distantPast) < ($1.modificationDate ?? .distantPast)
-            }
-        case .dateDescending:
-            return files.sorted {
-                ($0.modificationDate ?? .distantPast) > ($1.modificationDate ?? .distantPast)
-            }
-        case .sizeAscending:
-            return files.sorted { $0.fileSize < $1.fileSize }
-        case .sizeDescending:
-            return files.sorted { $0.fileSize > $1.fileSize }
-        }
-    }
 }
 
