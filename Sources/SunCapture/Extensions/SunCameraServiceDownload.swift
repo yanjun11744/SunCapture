@@ -17,8 +17,8 @@ extension SunCameraService {
     }
 
     public func download(_ file: ICCameraFile,
-                         device: ICCameraDevice,
-                         to directory: URL) async throws -> URL {
+                        device: ICCameraDevice,
+                        to directory: URL) async throws -> URL {
 
         try await ensureCatalogReady(device: device)
 
@@ -34,8 +34,9 @@ extension SunCameraService {
         let fileName = file.name ?? UUID().uuidString
 
         // ✅ 优先走直接拷贝（绕开 ImageCaptureCore UInt32 文件大小限制，修复 -9934）
-        if let sourceURL = file.url {
-            print("📥 直接拷贝模式: \(fileName), url: \(sourceURL.path)")
+        if let fsPath = file.fileSystemPath, !fsPath.isEmpty {
+            let sourceURL = URL(fileURLWithPath: fsPath)
+            print("📥 直接拷贝模式: \(fileName), path: \(fsPath)")
             return try await copyFileDirect(from: sourceURL,
                                             to: directory,
                                             fileName: fileName)
