@@ -506,7 +506,7 @@ final class SunDownloadHelper: NSObject, ICCameraDeviceDownloadDelegate, @unchec
     private let file: ICCameraFile
     private let dir: URL
     private let cont: CheckedContinuation<URL, Error>
-    private let onComplete: () -> Void  // ← 新增：回调后通知释放自身
+    private let onComplete: () -> Void
 
     init(file: ICCameraFile,
          dir: URL,
@@ -521,16 +521,12 @@ final class SunDownloadHelper: NSObject, ICCameraDeviceDownloadDelegate, @unchec
     @objc func done(_ f: ICCameraFile,
                     error: Error?,
                     contextInfo: UnsafeRawPointer?) {
-        defer { onComplete() }  // 无论成败都释放
-
-        print("📦 download done callback: \(f.name ?? "?"), error: \(error?.localizedDescription ?? "nil")")
-
+        defer { onComplete() }
+        print("📦 ICC回调: \(f.name ?? "?"), error: \(error?.localizedDescription ?? "nil")")
         if let error {
             cont.resume(throwing: SunCaptureError.downloadFailed(f, error))
         } else {
-            let url = dir.appendingPathComponent(f.name ?? "file")
-            print("📁 文件路径: \(url.path), 存在: \(FileManager.default.fileExists(atPath: url.path))")
-            cont.resume(returning: url)
+            cont.resume(returning: dir.appendingPathComponent(f.name ?? "file"))
         }
     }
 }

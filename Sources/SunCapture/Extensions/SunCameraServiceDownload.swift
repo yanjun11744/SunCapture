@@ -1,3 +1,8 @@
+//
+//  SunCameraServiceDownload.swift
+//  SunCapture — 下载相关
+//
+
 import Foundation
 import ImageCaptureCore
 
@@ -26,30 +31,20 @@ extension SunCameraService {
             throw SunCaptureError.directoryCreationFailed(directory, error)
         }
 
-        // 用 nonisolated(unsafe) 持有 helper，防止 ARC 在回调前释放
-        return try await withCheckedThrowingContinuation { cont in
-            let options: [ICDownloadOption: Any] = [
-                .downloadsDirectoryURL: directory,
-                .saveAsFilename: file.name ?? UUID().uuidString,
-                .overwrite: true
-            ]
+        let fileName = file.name ?? UUID().uuidString
 
-            // 创建 helper，通过闭包自持有
-            nonisolated(unsafe) var helper: SunDownloadHelper?
-            helper = SunDownloadHelper(file: file, dir: directory, cont: cont) {
-                helper = nil  // 回调完成后释放自身
-            }
-
-            print("📥 开始下载: \(file.name ?? "?"), 大小: \(file.fileSize) bytes")
-
-            device.requestDownloadFile(
-                file,
-                options: options,
-                downloadDelegate: helper!,
-                didDownloadSelector: #selector(SunDownloadHelper.done(_:error:contextInfo:)),
-                contextInfo: nil
-            )
+        // ✅ 优先走直接拷贝（绕开 ImageCaptureCore UInt32 文件大小限制，修复 -9934）
+        if let sourceURL = file.url {
+            print("📥 直接拷贝模式: \(fileName), url: \(sourceURL.path)")
+            return try await copyFileDirect(from: sourceURL,
+                                            to: directory,
+                                            fileName: fileName)
         }
+
+        // ⬇️ 降级：PTP 设备没有挂载路径，走 requestDownloadFile
+        print("📥 ICC下载模式: \(fileName), 大小: \(file.fileSize) bytes")
+        return try await downloadViaICC(file: file, device: device,
+                                        directory: directory, fileName: fileName)
     }
 
     // MARK: - 批量下载（带进度）
@@ -94,6 +89,55 @@ extension SunCameraService {
                 ))
                 continuation.finish()
             }
+        }
+    }
+
+    // MARK: - 直接文件系统拷贝（支持 > 4GB，绕开 ICC -9934）
+
+    private func copyFileDirect(from source: URL,
+                                to directory: URL,
+                                fileName: String) async throws -> URL {
+        let destination = directory.appendingPathComponent(fileName)
+
+        return try await Task.detached(priority: .userInitiated) {
+            let fm = FileManager.default
+
+            if fm.fileExists(atPath: destination.path) {
+                try fm.removeItem(at: destination)
+            }
+
+            try fm.copyItem(at: source, to: destination)
+
+            let size = (try? fm.attributesOfItem(atPath: destination.path)[.size] as? Int64) ?? -1
+            print("✅ 拷贝完成: \(fileName), 大小: \(size) bytes")
+
+            return destination
+        }.value
+    }
+
+    // MARK: - ICC requestDownloadFile 降级路径（< 4GB PTP 设备）
+
+    private func downloadViaICC(file: ICCameraFile,
+                                device: ICCameraDevice,
+                                directory: URL,
+                                fileName: String) async throws -> URL {
+        return try await withCheckedThrowingContinuation { cont in
+            let options: [ICDownloadOption: Any] = [
+                .downloadsDirectoryURL: directory,
+                .saveAsFilename: fileName,
+                .overwrite: true
+            ]
+            nonisolated(unsafe) var helper: SunDownloadHelper?
+            helper = SunDownloadHelper(file: file, dir: directory, cont: cont) {
+                helper = nil
+            }
+            device.requestDownloadFile(
+                file,
+                options: options,
+                downloadDelegate: helper!,
+                didDownloadSelector: #selector(SunDownloadHelper.done(_:error:contextInfo:)),
+                contextInfo: nil
+            )
         }
     }
 }
