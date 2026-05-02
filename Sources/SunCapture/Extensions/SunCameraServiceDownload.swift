@@ -1,10 +1,3 @@
-//
-//  SunCameraServiceDownload.swift
-//  SunCapture — 下载相关
-//
-//  Created by Yanjun Sun on 2026/3/11.
-//
-
 import Foundation
 import ImageCaptureCore
 
@@ -12,14 +5,12 @@ extension SunCameraService {
 
     // MARK: - 单文件下载
 
-    /// 下载文件到临时目录，返回本地 URL
     public func downloadToTemp(_ file: ICCameraFile,
                                device: ICCameraDevice) async throws -> URL {
         let dir = FileManager.default.temporaryDirectory
         return try await download(file, device: device, to: dir)
     }
 
-    /// 下载文件到指定目录，返回本地 URL
     public func download(_ file: ICCameraFile,
                          device: ICCameraDevice,
                          to directory: URL) async throws -> URL {
@@ -35,77 +26,74 @@ extension SunCameraService {
             throw SunCaptureError.directoryCreationFailed(directory, error)
         }
 
+        // 用 nonisolated(unsafe) 持有 helper，防止 ARC 在回调前释放
         return try await withCheckedThrowingContinuation { cont in
             let options: [ICDownloadOption: Any] = [
-                .downloadsDirectoryURL : directory,
-                .saveAsFilename        : file.name ?? UUID().uuidString,
-                .overwrite             : true
+                .downloadsDirectoryURL: directory,
+                .saveAsFilename: file.name ?? UUID().uuidString,
+                .overwrite: true
             ]
-            let helper = SunDownloadHelper(file: file, dir: directory, cont: cont)
+
+            // 创建 helper，通过闭包自持有
+            nonisolated(unsafe) var helper: SunDownloadHelper?
+            helper = SunDownloadHelper(file: file, dir: directory, cont: cont) {
+                helper = nil  // 回调完成后释放自身
+            }
+
+            print("📥 开始下载: \(file.name ?? "?"), 大小: \(file.fileSize) bytes")
+
             device.requestDownloadFile(
                 file,
-                options             : options,
-                downloadDelegate    : helper,
-                didDownloadSelector : #selector(SunDownloadHelper.done(_:error:contextInfo:)),
-                contextInfo         : nil
+                options: options,
+                downloadDelegate: helper!,
+                didDownloadSelector: #selector(SunDownloadHelper.done(_:error:contextInfo:)),
+                contextInfo: nil
             )
         }
     }
 
     // MARK: - 批量下载（带进度）
 
-    /// 批量下载，通过 AsyncStream 持续回报进度
-    ///
-    /// 使用示例：
-    /// ```swift
-    /// for await progress in await service.downloadAll(files, device: device, to: folder) {
-    ///     print("\(progress.completed)/\(progress.total)")
-    ///     if progress.isFinished { print("全部完成") }
-    /// }
-    /// ```
-    // SunCameraService+Download.swift
     public func downloadAll(_ files: [ICCameraFile],
                             device: ICCameraDevice,
                             to directory: URL) -> AsyncStream<SunDownloadProgress> {
 
-        // 提前把需要的信息取出来，避免跨 actor 传递 ICCameraFile 数组
         let fileCount = files.count
-        nonisolated(unsafe) let fileCopies = files  // ICCameraFile 是 @unchecked Sendable，显式捕获
+        nonisolated(unsafe) let fileCopies = files
 
         return AsyncStream { continuation in
             Task {
                 for (index, file) in fileCopies.enumerated() {
 
                     continuation.yield(SunDownloadProgress(
-                        total:           fileCount,
-                        completed:       index,
+                        total: fileCount,
+                        completed: index,
                         currentFileName: file.name ?? "",
-                        error:           nil
+                        error: nil
                     ))
 
-                    // 显式处理错误，不用 try?
                     do {
                         _ = try await download(file, device: device, to: directory)
+                        print("✅ 下载完成: \(file.name ?? "?")")
                     } catch {
-                        // 单个文件失败不中断整体，继续下载剩余文件
+                        print("❌ 下载失败: \(file.name ?? "?"), 错误: \(error)")
                         continuation.yield(SunDownloadProgress(
-                            total:           fileCount,
-                            completed:       index,
+                            total: fileCount,
+                            completed: index,
                             currentFileName: file.name ?? "",
-                            error:           error
+                            error: error
                         ))
                     }
                 }
 
                 continuation.yield(SunDownloadProgress(
-                    total:           fileCount,
-                    completed:       fileCount,
+                    total: fileCount,
+                    completed: fileCount,
                     currentFileName: "",
-                    error:           nil
+                    error: nil
                 ))
                 continuation.finish()
             }
         }
     }
 }
-
