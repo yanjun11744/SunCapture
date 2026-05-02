@@ -16,37 +16,84 @@ extension SunCameraService {
         return try await download(file, device: device, to: dir)
     }
 
-    public func download(_ file: ICCameraFile,
-                        device: ICCameraDevice,
-                        to directory: URL) async throws -> URL {
+public func download(_ file: ICCameraFile,
+                     device: ICCameraDevice,
+                     to directory: URL) async throws -> URL {
 
-        try await ensureCatalogReady(device: device)
+    try await ensureCatalogReady(device: device)
 
-        do {
-            try FileManager.default.createDirectory(
-                at: directory,
-                withIntermediateDirectories: true
-            )
-        } catch {
-            throw SunCaptureError.directoryCreationFailed(directory, error)
-        }
-
-        let fileName = file.name ?? UUID().uuidString
-
-        // ✅ 优先走直接拷贝（绕开 ImageCaptureCore UInt32 文件大小限制，修复 -9934）
-        if let fsPath = file.fileSystemPath, !fsPath.isEmpty {
-            let sourceURL = URL(fileURLWithPath: fsPath)
-            print("📥 直接拷贝模式: \(fileName), path: \(fsPath)")
-            return try await copyFileDirect(from: sourceURL,
-                                            to: directory,
-                                            fileName: fileName)
-        }
-
-        // ⬇️ 降级：PTP 设备没有挂载路径，走 requestDownloadFile
-        print("📥 ICC下载模式: \(fileName), 大小: \(file.fileSize) bytes")
-        return try await downloadViaICC(file: file, device: device,
-                                        directory: directory, fileName: fileName)
+    do {
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+    } catch {
+        throw SunCaptureError.directoryCreationFailed(directory, error)
     }
+
+    let fileName = file.name ?? UUID().uuidString
+
+    // ✅ 尝试从挂载卷找到真实路径
+    if let sourceURL = findMountedFileURL(file: file, device: device) {
+        print("📥 直接拷贝模式: \(fileName), path: \(sourceURL.path)")
+        return try await copyFileDirect(from: sourceURL,
+                                        to: directory,
+                                        fileName: fileName)
+    }
+
+    // ⬇️ 降级走 ICC（已知 4GB+ 会失败）
+    print("📥 ICC下载模式: \(fileName), 大小: \(file.fileSize) bytes")
+    return try await downloadViaICC(file: file, device: device,
+                                    directory: directory, fileName: fileName)
+}
+
+// MARK: - 从挂载卷搜索文件真实路径
+
+private func findMountedFileURL(file: ICCameraFile, device: ICCameraDevice) -> URL? {
+    guard let fileName = file.name else { return nil }
+    
+    let fm = FileManager.default
+    
+    // 1. 先找所有挂载卷
+    guard let volumeURLs = fm.mountedVolumeURLs(
+        includingResourceValuesForKeys: [.volumeNameKey, .volumeIsRemovableKey],
+        options: .skipHiddenVolumes
+    ) else { return nil }
+    
+    // 2. 只找可移动卷（相机/SD卡）
+    let removableVolumes = volumeURLs.filter { url in
+        let isRemovable = (try? url.resourceValues(forKeys: [.volumeIsRemovableKey]))?.volumeIsRemovable ?? false
+        return isRemovable
+    }
+    
+    print("🔍 可移动卷:", removableVolumes.map(\.path))
+    
+    // 3. 在每个卷里递归搜索文件名
+    for volume in removableVolumes {
+        if let found = searchFile(named: fileName, in: volume) {
+            return found
+        }
+    }
+    
+    return nil
+}
+
+private func searchFile(named fileName: String, in directory: URL) -> URL? {
+    let fm = FileManager.default
+    guard let enumerator = fm.enumerator(
+        at: directory,
+        includingPropertiesForKeys: [.isRegularFileKey],
+        options: [.skipsHiddenFiles]
+    ) else { return nil }
+    
+    for case let url as URL in enumerator {
+        if url.lastPathComponent == fileName {
+            return url
+        }
+    }
+    return nil
+}
+
 
     // MARK: - 批量下载（带进度）
 
